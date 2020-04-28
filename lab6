@@ -1,0 +1,80 @@
+//#include<locale.h>
+#include"Header.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <conio.h>
+#include <iostream>
+#include <queue>
+
+using namespace std;
+
+
+
+queue <int> q;
+HANDLE S1,S2,M;
+
+int res;
+int x1,x2;
+
+
+unsigned __stdcall PR(void * arg) // Поток готовящий данные
+{	
+		while (res < 1000) 
+		{
+			WaitForSingleObject(S2, INFINITE);
+			WaitForSingleObject(M, INFINITE);
+			x1 = rand() % 5;
+			q.push(x1);
+	//		cout << "\n+";		cout << "\n+";		cout << "\n+";		cout << "\n+";		cout << "\n+";		cout << "\n+";		cout << "\n+";		cout << "\n+";
+			ReleaseSemaphore(M, 1, NULL);
+			ReleaseSemaphore(S1, 1, NULL);
+			cout << "\n _push " << x1;
+			
+		}
+	return 0;
+};
+
+unsigned __stdcall CO(void * arg) // отсылающий данные.
+{
+	while (res<1000)
+	{
+		WaitForSingleObject(S1, INFINITE);
+		WaitForSingleObject(M, INFINITE);
+	//	cout << "\n-"; cout << "\n-"; cout << "\n-"; cout << "\n-"; cout << "\n-"; cout << "\n-"; cout << "\n-"; cout << "\n-";
+		x2 = q.front();
+		q.pop();
+		ReleaseSemaphore(M, 1, NULL);
+		ReleaseSemaphore(S2, 1, NULL);
+		res += x2;
+		cout << "\n pop " << x2 << "\n RES = " << res; 
+	//	Sleep(2);
+	}
+	return 0;
+};
+
+int main(int argc, char* argv[]) 
+{
+	mon a;
+	res = 0;
+
+	S1 = CreateSemaphore(NULL, 0, 5, NULL);
+	S2 = CreateSemaphore(NULL, 5, 5, NULL);
+	M= CreateSemaphore(NULL, 1, 1, NULL);
+	unsigned uThreadIDs[2];
+	HANDLE hThreads[2];
+	hThreads[0] = (HANDLE)_beginthreadex(NULL, 0, &PR, NULL, 0, &uThreadIDs[0]);
+	hThreads[1] = (HANDLE)_beginthreadex(NULL, 0, &CO, NULL, 0, &uThreadIDs[1]);
+	
+	
+	//hThreads[0] = (HANDLE)_beginthreadex(NULL, 0, a.PR , NULL, 0, &uThreadIDs[0]);
+	//hThreads[1] = (HANDLE)_beginthreadex(NULL, 0, a.CO, NULL, 0, &uThreadIDs[1]);
+
+	
+
+	WaitForMultipleObjects(2, hThreads, TRUE, INFINITE);
+	CloseHandle(S1);
+	CloseHandle(hThreads[0]);
+	CloseHandle(hThreads[1]);
+	system("pause");
+	return 0;
+}
